@@ -1,0 +1,135 @@
+{
+  "name": "TestingGmail",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "filters": {}
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ],
+      "id": "30acdfc2-25af-4de3-858a-50f3ef5b07d8",
+      "name": "Gmail Trigger",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "3kzS4FKiahRY7XXy",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=generate reply for\n{{ $json.snippet }}",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        208,
+        0
+      ],
+      "id": "21118cd3-69f7-42c9-ac88-ffbd4a648fa4",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        80,
+        208
+      ],
+      "id": "d058dd5b-f030-422c-a77f-14de41004e86",
+      "name": "Google Gemini Chat Model1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "C6vk9LeQfYcq9JED",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "snehasurapally@gmail.com",
+        "subject": "Hackathon",
+        "message": "={{ $json.output }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        560,
+        0
+      ],
+      "id": "e9bf3472-a1f9-4e99-9b6a-e14cd9183bf8",
+      "name": "Send a message",
+      "webhookId": "8728d390-66b1-4971-98ee-d9acdb0a0e2e",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "3kzS4FKiahRY7XXy",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "be082101-40ed-4eda-92ef-1db300ded7da",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "0b28263368f441130ebaafe91f57fa916ea8d49b71ccb4890618f319b8928f18"
+  },
+  "id": "TDg2rCIWdLVi5U6P",
+  "tags": []
+}

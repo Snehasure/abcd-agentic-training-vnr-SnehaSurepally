@@ -1,0 +1,139 @@
+{
+  "name": "DailyweatherReport",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 8
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "ab9a3fa6-1024-4032-b104-4bb9fa70fc39",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "url": "https://api.openweathermap.org/data/2.5/weather?q=Hyderabad&appid=448e79816af1c34ad8dc8fe4005d7de4&units=metric",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        160,
+        128
+      ],
+      "id": "2771054f-4f87-4670-876b-4b5a676e8602",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "aa43ad66-93d0-4eab-a2b0-bf45624b88f7",
+              "name": "=message",
+              "value": "=🌤️ Today's weather in {{$json[\"name\"]}}:<br>\n{{$json[\"weather\"][0][\"description\"]}}<br>\n🌡️ Temp: {{$json[\"main\"][\"temp\"]}}°C<br>\n💧 Humidity: {{$json[\"main\"][\"humidity\"]}}%\n\n\n",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        272,
+        272
+      ],
+      "id": "a41e3ba2-e538-4bfb-920a-c41e6e7aa160",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "sendTo": "snehavsurepally@gmail.com",
+        "subject": "Daily Weather Report",
+        "message": "={{ $json[\"message\"] }}\n\n\n\n",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        480,
+        272
+      ],
+      "id": "f63de703-80ac-4f54-9eb6-4547cb0e93ea",
+      "name": "Send a message",
+      "webhookId": "d3483992-3e5d-4d8f-a77a-ce20dabe6fec",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "3kzS4FKiahRY7XXy",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "7496d61e-4a44-46c1-9c5c-66db40d4b3a9",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "0b28263368f441130ebaafe91f57fa916ea8d49b71ccb4890618f319b8928f18"
+  },
+  "id": "oNql3WxkjRTY9ZPQ",
+  "tags": []
+}

@@ -1,0 +1,295 @@
+{
+  "name": "meeting-bot",
+  "nodes": [
+    {
+      "parameters": {
+        "jsCode": "const results = [];\n\nfunction parseDateTime(dateStr, timeStr) {\n  if (!dateStr) return null;\n  \n  let full = dateStr;\n  if (timeStr && timeStr !== \"Not Found\") full += \" \" + timeStr;\n  \n  let parsed = new Date(full);\n  if (isNaN(parsed)) {\n    parsed = new Date(Date.parse(full.replace(/(\\d+)(st|nd|rd|th)/, \"$1\")));\n  }\n  if (isNaN(parsed)) return null;\n  \n  return parsed;\n}\n\nfor (const item of items) {\n  const json = item.json;\n\n  // --- Step 1: Extract Subject ---\n  let subject = \"No Subject\";\n  try {\n    subject =\n      json.payload?.headers?.find(h => h.name === \"Subject\")?.value ||\n      json.payload?.headers?.find(h => h.name === \"subject\")?.value ||\n      json.headers?.subject ||\n      json.subject ||\n      json.snippet ||\n      \"No Subject\";\n  } catch (e) {\n    subject = \"No Subject\";\n  }\n\n  // --- Step 2: Extract Body (text or HTML) ---\n  let body = \"\";\n  if (json.payload?.parts) {\n    for (const part of json.payload.parts) {\n      if (part.body?.data) {\n        body = Buffer.from(part.body.data, \"base64\").toString(\"utf8\");\n        if (body) break;\n      }\n    }\n  }\n  if (!body && json.snippet) body = json.snippet;\n\n  // --- Step 3: Clean body ---\n  body = body.replace(/<[^>]+>/g, \" \").replace(/\\s+/g, \" \").trim();\n\n  // --- Step 4: Filter only meeting mails ---\n  if (!/meeting|invite|schedule|scheduled|call|zoom|google meet|teams/i.test(subject + body)) {\n    continue;\n  }\n\n  // --- Step 5: Extract Date ---\n  const dateRegexList = [\n    /\\b\\d{1,2}\\/\\d{1,2}\\/\\d{2,4}\\b/,\n    /\\b\\d{4}-\\d{2}-\\d{2}\\b/,\n    /\\b(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\\.?\\s?\\d{1,2}(?:st|nd|rd|th)?,?\\s?\\d{4}\\b/i,\n    /\\b\\d{1,2}\\s(?:Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*,?\\s?\\d{4}\\b/i,\n    /\\b(?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday),?\\s+[A-Za-z]+\\s+\\d{1,2},?\\s+\\d{4}/i\n  ];\n\n  const timeRegexList = [\n    /\\b\\d{1,2}:\\d{2}\\s?(AM|PM|am|pm)?\\b/,\n    /\\b\\d{1,2}\\s?(AM|PM|am|pm)\\b/,\n  ];\n\n  let dateMatch = null;\n  let timeMatch = null;\n\n  for (const regex of dateRegexList) {\n    const match = body.match(regex);\n    if (match) { dateMatch = match[0]; break; }\n  }\n  for (const regex of timeRegexList) {\n    const match = body.match(regex);\n    if (match) { timeMatch = match[0]; break; }\n  }\n\n  // --- Step 6: Parse and Filter only next 24 hours ---\nconst meetingDate = parseDateTime(dateMatch, timeMatch);\nconst now = new Date();\n\nif (!meetingDate) continue; // invalid date\n\nconst diffMinutes = (meetingDate - now) / (1000 * 60); // time difference in minutes\n\n// Keep meetings that start within the next 24 hours (1440 minutes)\nif (diffMinutes <= 0 || diffMinutes > 1440) {\n  continue; // Skip old meetings or ones too far in the future\n}\n\n   \n\n  // --- Step 7: Extract Meeting Links ---\n  const meetLinkRegex = /https:\\/\\/meet\\.google\\.com\\/[a-zA-Z0-9-]+/i;\n  const zoomLinkRegex = /https:\\/\\/[\\w.-]*zoom\\.us\\/[^\\s]+/i;\n  const teamsLinkRegex = /https:\\/\\/teams\\.microsoft\\.com\\/l\\/meetup-join\\/[^\\s]+/i;\n\n  const meetingLink =\n    body.match(meetLinkRegex)?.[0] ||\n    body.match(zoomLinkRegex)?.[0] ||\n    body.match(teamsLinkRegex)?.[0] ||\n    null;\n\n  // --- Step 8: Store future meetings only ---\n  results.push({\n    json: {\n      title: subject,\n      date: dateMatch || \"Not Found\",\n      time: timeMatch || \"Not Found\",\n      meetingDate: meetingDate.toISOString(),\n      meetingLink,\n      body: body.slice(0, 500),\n      messageId:\n        json.id ||\n        json.messageId ||\n        json.payload?.headers?.find(h => h.name === \"Message-ID\")?.value ||\n        null,\n    },\n  });\n}\n\n// ✅ Safe return even if no results\nif (results.length === 0) {\n  return [{ json: { message: \"No upcoming meetings found today.\" } }];\n}\n\nreturn results;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        400,
+        144
+      ],
+      "id": "a2f8957d-04d0-482a-aca0-45ff3984785d",
+      "name": "Code in JavaScript",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "limit": 10,
+        "filters": {
+          "labelIds": [
+            "INBOX"
+          ],
+          "q": "subject:(meeting) OR has:invite OR \"Google Meet\"",
+          "readStatus": "both"
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [
+        208,
+        320
+      ],
+      "id": "ed2c32d0-178a-4f3f-aa3a-f52bbe9333ac",
+      "name": "Get many messages",
+      "webhookId": "d1bed6c2-be4f-483f-9819-d7bed72a19f3",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "6FzSEnhuIwIpsJGu",
+          "name": "Gmail account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1x-QJinsxKDznecFloOT7gx5k4kB88cN63qxRq3kUnDw",
+          "mode": "list",
+          "cachedResultName": "MeetingLogs",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1x-QJinsxKDznecFloOT7gx5k4kB88cN63qxRq3kUnDw/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1x-QJinsxKDznecFloOT7gx5k4kB88cN63qxRq3kUnDw/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "title",
+              "displayName": "title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "meetingDate",
+              "displayName": "meetingDate",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "body",
+              "displayName": "body",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "meetingLink",
+              "displayName": "meetingLink",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "messageId",
+              "displayName": "messageId",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "date",
+              "displayName": "date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "time",
+              "displayName": "time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "message",
+              "displayName": "message",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        640,
+        144
+      ],
+      "id": "fd9a3722-961e-49d9-a6ee-4e08433a8417",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "XEuUoBuzujis54v4",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const now = new Date();\nconst reminders = [];\n\nfor (const item of items) {\n  const row = item.json;\n  \n  // Change this key name to whatever your date field is in Google Sheet (like 'meetingDate' or 'startTime')\n  const meetingTime = new Date(row.meetingDate || row.startTime || row.date);\n\n  if (isNaN(meetingTime)) continue;\n\n  const diffMinutes = (meetingTime - now) / (1000 * 60);\n\n  // Meeting within next 30 min\n  if (diffMinutes <= 1440 && diffMinutes > 0) {\n    reminders.push({\n      json: {\n        title: row.title || row.subject || \"Upcoming Meeting\",\n        meetingTime: meetingTime.toLocaleString(),\n        meetingLink: row.meetingLink || row.link || \"\",\n        email: row.email || \"snehasurapally@gmail.com\",\n        phone: row.phone || \"+917661824405\",\n      }\n    });\n  }\n}\n\nreturn reminders;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        704,
+        416
+      ],
+      "id": "0ce7ef1c-ad87-4d3c-b72a-36f0e69f9829",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "from": "+14155238886",
+        "to": "+917661824405",
+        "toWhatsapp": true,
+        "message": "=⏰ Reminder: Your meeting \"{{ $json.title }}\" \n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.twilio",
+      "typeVersion": 1,
+      "position": [
+        1040,
+        432
+      ],
+      "id": "c0e060fc-9e91-4f49-908d-cb31764b3bae",
+      "name": "Send an SMS/MMS/WhatsApp message",
+      "credentials": {
+        "twilioApi": {
+          "id": "B6HuhwpROQOwxixW",
+          "name": "Twilio account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 7
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -96,
+        192
+      ],
+      "id": "93baea84-a75c-48be-bcc5-86763d18c88f",
+      "name": "Schedule Trigger"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many messages": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Send an SMS/MMS/WhatsApp message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get many messages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send an SMS/MMS/WhatsApp message": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "e96f4b5f-ea74-412c-92b2-38c567c57b38",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "0b28263368f441130ebaafe91f57fa916ea8d49b71ccb4890618f319b8928f18"
+  },
+  "id": "wErLCceqf75gO5RM",
+  "tags": []
+}

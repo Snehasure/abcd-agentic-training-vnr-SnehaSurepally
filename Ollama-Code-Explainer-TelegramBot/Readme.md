@@ -322,10 +322,109 @@ await app.run_polling()
 
 ### ✅ Starts polling Telegram servers continuously for new messages and processes them in real time.
 
+## 🌐 Deployment on Render (Free Hosting Option)
+
+The Ollama Code Explainer Bot can be deployed online so that anyone can interact with it on Telegram without running the
+
+backend locally.
+
+For this purpose, we use Render.com, a free and beginner-friendly cloud hosting platform that runs Python applications 
+
+continuously.
+
+⚙️ What We Are Doing
+
+We host our Python-based Telegram bot (the backend code) on Render’s cloud infrastructure.
+
+This allows the bot to stay online 24/7, listening to user messages and responding instantly — even when our personal system
+
+is turned off.
+
+Render runs the bot script (bot.py) automatically and keeps it alive using a web service setup.
+
+The bot still needs to connect to the Ollama model server (which generates code explanations and optimizations).
+
+Since Ollama currently runs locally (on our computer), we use Ngrok to expose it to the internet securely.
+
+🧩 Steps Performed
+
+Uploaded Code to GitHub:
+
+The entire bot project was pushed to GitHub so that Render can fetch it directly.
+
+Connected GitHub Repository to Render:
+
+On Render, we created a new Web Service and linked it to the GitHub repository.
+
+Configured the Build and Run Commands:
+
+Runtime: Python 3
+
+Build Command:
+
+pip install -r requirements.txt
+
+
+Start Command:
+
+python bot.py
+
+
+Added Environment Variables (Secrets):
+
+TELEGRAM_BOT_TOKEN=your_bot_token
+
+OLLAMA_URL=https://a1b2c3d4.ngrok.io
+
+MODEL=llama3.2
+
+
+These variables securely store sensitive data like API tokens and URLs.
+
+Deployed the Service:
+
+Once deployed, Render automatically installs dependencies and starts the bot process.
+
+🌐 Connecting Ollama with Render (Using Ngrok)
+
+Since Render cannot run Ollama locally, we make our local Ollama instance accessible via a secure tunnel using Ngrok:
+
+ngrok http 11434
+
+
+This generates a temporary public URL like:
+
+https://a1b2c3d4.ngrok.io
+
+
+We then assign this URL to OLLAMA_URL so the hosted bot can reach our local LLM for processing user requests.
+
+💡 Importance of This Deployment
+
+✅ Global Accessibility:
+
+Once deployed, anyone on Telegram can chat with your bot from anywhere in the world — no setup required.
+
+✅ Continuous Availability:
+
+Render keeps your bot running even if your computer is offline.
+
+✅ Secure & Scalable:
+
+Environment variables protect sensitive keys, and the service can scale automatically with user demand.
+
+✅ Educational & Practical:
+
+Demonstrates integration of cloud deployment + local AI inference, bridging local computation (Ollama) and public chatbot
+
+access (Telegram).
+
 
 ## 🧩 Conclusion
 
-The Ollama Code Explainer Bot showcases how local AI (LLMs) can power intelligent assistants for developers — providing explainability, performance tuning, and generation capabilities all from within Telegram.
+The Ollama Code Explainer Bot showcases how local AI (LLMs) can power intelligent assistants for developers — providing 
+
+explainability, performance tuning, and generation capabilities all from within Telegram.
 
 This project highlights:
 

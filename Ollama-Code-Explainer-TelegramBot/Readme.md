@@ -434,4 +434,10 @@ The potential of open-source LLMs for privacy-preserving AI solutions.
 
 The synergy between Python, Ollama, and Telegram APIs for seamless interaction.
 
+## Presentation Link
 
+https://www.canva.com/design/DAG3ty2bD6Q/yuFs_iP8EvtjEKsRvHqvGw/edit?utm_content=DAG3ty2bD6Q&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton
+
+## Video Link
+
+https://1drv.ms/v/c/a1fbdbf99dcec386/Eele3zOx6hZIrAaK9oQjJGYBirD6QagUjK1VSkYuI1lRIQ?e=LrzQdy
